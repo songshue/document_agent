@@ -1,0 +1,9 @@
+# 智能文档问答助手 - 依赖列表
+# 使用 pip install -i https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt 安装
+
+fastapi>=0.104.0
+uvicorn>=0.24.0
+python-dotenv>=1.0.0
+hello_agents>=0.1.0
+pydantic>=2.0.0
+python-multipart>=0.0.6

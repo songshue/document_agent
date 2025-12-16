@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能文档问答助手</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- 自定义头部 -->
+        <div class="custom-header">
+            <h1>📚 智能文档问答助手</h1>
+            <p>智能文档问答系统，支持多文件上传和并行处理</p>
+        </div>
+
+        <!-- 标签页导航 -->
+        <div class="tab-container">
+            <button class="tab-btn active" onclick="openTab(event, 'start')">🏠 开始使用</button>
+            <button class="tab-btn" onclick="openTab(event, 'chat')">💬 智能问答</button>
+            <button class="tab-btn" onclick="openTab(event, 'notes')">📝 学习笔记</button>
+            <button class="tab-btn" onclick="openTab(event, 'stats')">📊 学习统计</button>
+        </div>
+
+        <!-- 开始使用标签页 -->
+        <div id="start" class="tab-content active">
+            <!-- 初始化助手 -->
+            <div class="custom-card">
+                <h2>初始化助手</h2>
+                <div class="row">
+                    <input type="text" id="user_id" placeholder="输入你的用户ID（可选，默认为web_user）" value="web_user">
+                    <button class="custom-button" onclick="initAssistant()">初始化助手</button>
+                </div>
+                <div class="output-area">
+                    <div class="output-label">初始化状态</div>
+                    <div id="init_output" class="output-content"></div>
+                </div>
+            </div>
+
+            <!-- 文件加载区域 -->
+            <div class="custom-card">
+                <h3>📄 文件加载</h3>
+                <input type="file" id="pdf_upload" accept=".pdf" multiple>
+                <p class="help-text">支持单文件或多文件上传，多文件将自动使用并行加载</p>
+                <button class="custom-button" onclick="loadDocuments()">加载文档</button>
+                <div class="output-area">
+                    <div class="output-label">加载状态</div>
+                    <div id="load_output" class="output-content"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 智能问答标签页 -->
+        <div id="chat" class="tab-content">
+            <div class="custom-card">
+                <h2>向文档提问或回顾学习历程</h2>
+                <div id="chat_history" class="chat-history"></div>
+                <div class="chat-input-area">
+                    <input type="text" id="msg_input" placeholder="例如：什么是Transformer？ 或 我之前学过什么？">
+                    <button class="custom-button" onclick="sendMessage()">发送</button>
+                </div>
+                <div class="examples">
+                    <h4>示例问题：</h4>
+                    <div class="example-buttons">
+                        <button class="example-btn" onclick="setExample('什么是大语言模型？')">什么是大语言模型？</button>
+                        <button class="example-btn" onclick="setExample('Transformer架构有哪些核心组件？')">Transformer架构有哪些核心组件？</button>
+                        <button class="example-btn" onclick="setExample('如何训练大语言模型？')">如何训练大语言模型？</button>
+                        <button class="example-btn" onclick="setExample('我之前学过什么内容？')">我之前学过什么内容？</button>
+                        <button class="example-btn" onclick="setExample('回顾一下关于注意力机制的学习')">回顾一下关于注意力机制的学习</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 学习笔记标签页 -->
+        <div id="notes" class="tab-content">
+            <div class="custom-card">
+                <h2>记录学习心得和重要概念</h2>
+                <textarea id="note_content" placeholder="输入你的学习笔记..." rows="5"></textarea>
+                <input type="text" id="concept_input" placeholder="相关概念（可选）例如：transformer, attention">
+                <button class="custom-button" onclick="addNote()">保存笔记</button>
+                <div class="output-area">
+                    <div class="output-label">保存状态</div>
+                    <div id="note_output" class="output-content"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 学习统计标签页 -->
+        <div id="stats" class="tab-content">
+            <div class="custom-card">
+                <h2>查看学习进度和统计信息</h2>
+                <button class="custom-button" onclick="getStats()">刷新统计</button>
+                <div id="stats_output" class="stats-output"></div>
+            </div>
+            <div class="custom-card">
+                <h2>生成学习报告</h2>
+                <button class="custom-button" onclick="generateReport()">生成报告</button>
+                <div class="output-area">
+                    <div class="output-label">报告状态</div>
+                    <div id="report_output" class="output-content"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>

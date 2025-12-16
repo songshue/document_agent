@@ -1,0 +1,310 @@
+/* 全局样式 */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    line-height: 1.6;
+    color: #333;
+    background-color: #f5f5f5;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* 自定义头部样式 */
+.custom-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.custom-header h1 {
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+}
+
+.custom-header p {
+    font-size: 1.1rem;
+    opacity: 0.9;
+}
+
+/* 标签页导航样式 */
+.tab-container {
+    display: flex;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.tab-btn {
+    background: none;
+    border: none;
+    padding: 12px 24px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border-bottom: 3px solid transparent;
+    margin-right: 10px;
+}
+
+.tab-btn:hover {
+    background-color: #f0f0f0;
+}
+
+.tab-btn.active {
+    border-bottom-color: #667eea;
+    color: #667eea;
+    font-weight: 600;
+}
+
+/* 标签页内容样式 */
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* 卡片样式 */
+.custom-card {
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    background-color: white;
+}
+
+.custom-card.half-width {
+    width: 48%;
+    margin-right: 2%;
+}
+
+.custom-card h2 {
+    font-size: 1.8rem;
+    margin-bottom: 20px;
+    color: #333;
+}
+
+.custom-card h3 {
+    font-size: 1.4rem;
+    margin-bottom: 15px;
+    color: #555;
+}
+
+/* 行布局 */
+.row {
+    display: flex;
+    flex-wrap: wrap;
+    margin-bottom: 15px;
+    gap: 10px;
+}
+
+/* 按钮样式 */
+.custom-button {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: opacity 0.3s ease;
+}
+
+.custom-button:hover {
+    opacity: 0.9;
+}
+
+.custom-button.secondary {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.button-group {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+/* 输入样式 */
+input[type="text"],
+input[type="file"],
+textarea {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1rem;
+    margin-bottom: 15px;
+}
+
+textarea {
+    width: 100%;
+    resize: vertical;
+}
+
+input[type="file"] {
+    padding: 8px;
+    margin-bottom: 10px;
+}
+
+.help-text {
+    font-size: 0.9rem;
+    color: #666;
+    margin-bottom: 15px;
+    font-style: italic;
+}
+
+/* 输出区域样式 */
+.output-area {
+    margin-top: 15px;
+}
+
+.output-label {
+    font-weight: 600;
+    margin-bottom: 5px;
+    color: #555;
+}
+
+.output-content {
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    padding: 15px;
+    min-height: 80px;
+    background-color: #f9f9f9;
+    font-family: monospace;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+/* 聊天界面样式 */
+.chat-history {
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    padding: 15px;
+    min-height: 400px;
+    max-height: 500px;
+    overflow-y: auto;
+    background-color: #f9f9f9;
+    margin-bottom: 15px;
+}
+
+.chat-message {
+    margin-bottom: 10px;
+    padding: 10px;
+    border-radius: 8px;
+    max-width: 80%;
+}
+
+.chat-message.user {
+    background-color: #667eea;
+    color: white;
+    margin-left: auto;
+}
+
+.chat-message.assistant {
+    background-color: #e0e0e0;
+    color: #333;
+    margin-right: auto;
+}
+
+/* 聊天消息时间戳样式 */
+.message-timestamp {
+    font-size: 0.75rem;
+    opacity: 0.7;
+    margin-bottom: 5px;
+    font-style: italic;
+}
+
+.chat-input-area {
+    display: flex;
+    gap: 10px;
+}
+
+.chat-input-area input {
+    flex: 1;
+    margin-bottom: 0;
+}
+
+/* 示例按钮样式 */
+.examples {
+    margin-top: 20px;
+}
+
+.examples h4 {
+    margin-bottom: 10px;
+    color: #555;
+}
+
+.example-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.example-btn {
+    background-color: #f0f0f0;
+    border: 1px solid #ddd;
+    padding: 8px 15px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.example-btn:hover {
+    background-color: #e0e0e0;
+}
+
+/* 统计输出样式 */
+.stats-output {
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    padding: 15px;
+    background-color: #f9f9f9;
+    margin-top: 15px;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .container {
+        padding: 10px;
+    }
+
+    .custom-header h1 {
+        font-size: 2rem;
+    }
+
+    .tab-container {
+        flex-direction: column;
+    }
+
+    .tab-btn {
+        margin-bottom: 5px;
+        width: 100%;
+        text-align: left;
+    }
+
+    .row {
+        flex-direction: column;
+    }
+
+    .custom-card.half-width {
+        width: 100%;
+        margin-right: 0;
+    }
+
+    .chat-message {
+        max-width: 95%;
+    }
+}
