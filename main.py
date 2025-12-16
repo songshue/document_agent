@@ -17,7 +17,7 @@
 
 import uvicorn
 from dotenv import load_dotenv
-from src.ui.app import app
+from src.api.app import app
 
 # 加载环境变量
 load_dotenv()
@@ -34,7 +34,7 @@ def main():
     uvicorn.run(
         app,
         host="0.0.0.0",
-        port=7864,
+        port=7866,
         reload=False,
         log_level="info"
     )

@@ -13,6 +13,10 @@ from datetime import datetime
 from typing import Dict, List, Optional, Any, Tuple
 from hello_agents.tools import MemoryTool, RAGTool
 
+# 导入图片处理相关模块
+from src.api.llm import OpenAIVisionClient
+from markitdown import MarkItDown
+
 
 class PDFLearningAssistant:
     """智能文档问答助手"""
@@ -30,10 +34,15 @@ class PDFLearningAssistant:
         self.memory_tool = MemoryTool(user_id=user_id)
         self.rag_tool = RAGTool(rag_namespace=f"pdf_{user_id}")
 
+        # 初始化图片处理工具
+        self.ocr_client = OpenAIVisionClient()
+        self.markitdown = MarkItDown(llm_client=self.ocr_client, llm_model=self.ocr_client.model)
+
         # 学习统计
         self.stats = {
             "session_start": datetime.now(),
             "documents_loaded": 0,
+            "images_loaded": 0,
             "questions_asked": 0,
             "concepts_learned": 0
         }
@@ -43,60 +52,71 @@ class PDFLearningAssistant:
         # 临时文件名到原始文件名的映射
         self.temp_to_original = {}
 
-    def load_document(self, pdf_path: str, original_filename: Optional[str] = None) -> Dict[str, Any]:
-        """加载PDF文档到知识库
+    def load_document(self, file_path: str, original_filename: Optional[str] = None) -> Dict[str, Any]:
+        """加载文档（PDF或图片）到知识库
 
         Args:
-            pdf_path: PDF文件路径
+            file_path: 文件路径（支持PDF和图片）
             original_filename: 原始文件名（可选）
 
         Returns:
             Dict: 包含success和message的结果
         """
-        if not os.path.exists(pdf_path):
-            return {"success": False, "message": f"文件不存在: {pdf_path}"}
+        if not os.path.exists(file_path):
+            return {"success": False, "message": f"文件不存在: {file_path}"}
 
-        start_time = time.time()
+        # 获取文件扩展名和文件名
+        temp_doc_name = os.path.basename(file_path)
+        doc_name = original_filename if original_filename else temp_doc_name
+        ext = os.path.splitext(doc_name)[1].lower() if doc_name else os.path.splitext(file_path)[1].lower()
 
-        try:
-            # 使用RAG工具处理PDF
-            result = self.rag_tool.execute(
-                "add_document",
-                file_path=pdf_path,
-                chunk_size=1000,
-                chunk_overlap=200
-            )
+        # 处理图片文件
+        if ext in [".jpg", ".jpeg", ".png", ".gif", ".webp"]:
+            return self.process_image(file_path, doc_name)
+        # 处理PDF文件
+        elif ext == ".pdf":
+            start_time = time.time()
 
-            process_time = time.time() - start_time
+            try:
+                # 使用RAG工具处理PDF
+                result = self.rag_tool.execute(
+                    "add_document",
+                    file_path=file_path,
+                    chunk_size=1000,
+                    chunk_overlap=200
+                )
 
-            # RAG工具返回的是字符串消息
-            temp_doc_name = os.path.basename(pdf_path)
-            # 使用原始文件名（如果提供），否则使用临时文件名
-            doc_name = original_filename if original_filename else temp_doc_name
-            # 存储临时文件名到原始文件名的映射
-            self.temp_to_original[temp_doc_name] = doc_name
-            self.current_documents.append(doc_name)
-            self.stats["documents_loaded"] += 1
+                process_time = time.time() - start_time
 
-            # 记录到学习记忆
-            self.memory_tool.execute(
-                "add",
-                content=f"加载了文档《{doc_name}》",
-                memory_type="episodic",
-                importance=0.9,
-                event_type="document_loaded",
-                session_id=self.session_id
-            )
+                # 存储临时文件名到原始文件名的映射
+                self.temp_to_original[temp_doc_name] = doc_name
+                self.current_documents.append(doc_name)
+                self.stats["documents_loaded"] += 1
 
-            return {
-                "success": True,
-                "message": f"加载成功！(耗时: {process_time:.1f}秒)",
-                "document": doc_name
-            }
-        except Exception as e:
+                # 记录到学习记忆
+                self.memory_tool.execute(
+                    "add",
+                    content=f"加载了文档《{doc_name}》",
+                    memory_type="episodic",
+                    importance=0.9,
+                    event_type="document_loaded",
+                    session_id=self.session_id
+                )
+
+                return {
+                    "success": True,
+                    "message": f"PDF文档加载成功！(耗时: {process_time:.1f}秒)",
+                    "document": doc_name
+                }
+            except Exception as e:
+                return {
+                    "success": False,
+                    "message": f"PDF文档加载失败: {str(e)}"
+                }
+        else:
             return {
                 "success": False,
-                "message": f"加载失败: {str(e)}"
+                "message": f"不支持的文件类型: {ext}，仅支持PDF和图片文件"
             }
 
     def ask(self, question: str, use_advanced_search: bool = True) -> str:
@@ -194,10 +214,72 @@ class PDFLearningAssistant:
         return {
             "会话时长": f"{duration:.0f}秒",
             "加载文档": self.stats["documents_loaded"],
+            "加载图片": self.stats["images_loaded"],
             "提问次数": self.stats["questions_asked"],
             "学习笔记": self.stats["concepts_learned"],
             "当前文档": ", ".join(self.current_documents) if self.current_documents else "未加载"
         }
+
+    def process_image(self, file_path: str, doc_name: str) -> Dict[str, Any]:
+        """处理图片文件，使用OCR提取文字并添加到知识库
+
+        Args:
+            file_path: 图片文件路径
+            doc_name: 文档名称
+
+        Returns:
+            Dict: 包含success和message的结果
+        """
+        import time
+        start_time = time.time()
+
+        try:
+            # 使用MarkItDown处理图片，仅返回原文
+            custom_prompt = "请准确提取这张图片中的所有文字内容，不要解释，不要总结，只输出原文"
+            result = self.markitdown.convert(file_path, llm_prompt=custom_prompt)
+            
+            # 获取提取的文字内容
+            text_content = result.text_content
+            if not text_content.strip():
+                return {
+                    "success": False,
+                    "message": "图片文字提取失败，未获取到有效内容"
+                }
+            
+            # 将提取的文字添加到知识库
+            self.rag_tool.execute(
+                "add_text",
+                text=text_content,
+                document_id=doc_name
+            )
+            
+            process_time = time.time() - start_time
+            
+            # 更新统计信息
+            self.temp_to_original[os.path.basename(file_path)] = doc_name
+            self.current_documents.append(doc_name)
+            self.stats["images_loaded"] += 1
+            
+            # 记录到学习记忆
+            self.memory_tool.execute(
+                "add",
+                content=f"加载了图片《{doc_name}》",
+                memory_type="episodic",
+                importance=0.9,
+                event_type="image_loaded",
+                session_id=self.session_id
+            )
+            
+            return {
+                "success": True,
+                "message": f"图片处理成功！(耗时: {process_time:.1f}秒)，提取文字长度: {len(text_content)}字符",
+                "document": doc_name
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "message": f"图片处理失败: {str(e)}"
+            }
 
     def generate_report(self, save_to_file: bool = True) -> Dict[str, Any]:
         """生成学习报告

@@ -35,42 +35,82 @@ def init_assistant(user_id: str = Form("web_user")) -> Dict[str, Any]:
     assistant_state["assistant"] = PDFLearningAssistant(user_id=user_id)
     return {"success": True, "message": f"✅ 助手已初始化 (用户: {user_id})"}
 
-@app.post("/api/load_pdf")
-def load_pdf(file: UploadFile = File(...)) -> Dict[str, Any]:
-    """加载单个PDF文件"""
+
+
+@app.post("/api/load_multimodal")
+def load_multimodal(file: UploadFile = File(...)) -> Dict[str, Any]:
+    """加载单个多模态文件（图片、音频等）"""
     global assistant_state
     if assistant_state["assistant"] is None:
         return {"success": False, "message": "❌ 请先初始化助手"}
 
+    # 支持的文件类型和扩展名映射
+    supported_extensions = {
+        "jpg": "image/jpeg",
+        "jpeg": "image/jpeg",
+        "png": "image/png",
+        "gif": "image/gif",
+        "bmp": "image/bmp",
+        "pdf": "application/pdf"
+    }
+    
+    # 从文件名获取扩展名
+    file_ext = file.filename.split(".")[-1].lower() if file.filename else ""
+    
+    if file_ext not in supported_extensions:
+        return {"success": False, "message": f"❌ 不支持的文件类型: {file_ext}"}
+
+    # 根据扩展名确定文件类型
+    content_type = supported_extensions[file_ext]
+
     # 保存临时文件
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_file:
+    with tempfile.NamedTemporaryFile(delete=False, suffix=file_ext) as temp_file:
         temp_file.write(file.file.read())
         temp_path = temp_file.name
 
     try:
-        # 处理文件，传递原始文件名
+        # 直接使用现有的load_document方法
         result = assistant_state["assistant"].load_document(temp_path, original_filename=file.filename)
         return result
     finally:
         # 删除临时文件
         os.unlink(temp_path)
 
-@app.post("/api/load_pdf_parallel")
-def load_pdf_parallel(files: List[UploadFile] = File(...)) -> Dict[str, Any]:
-    """并行加载PDF文件"""
+@app.post("/api/load_multimodal_parallel")
+def load_multimodal_parallel(files: List[UploadFile] = File(...)) -> Dict[str, Any]:
+    """并行加载多个多模态文件（图片、音频等）"""
     global assistant_state
     if assistant_state["assistant"] is None:
         return {"success": False, "message": "❌ 请先初始化助手"}
 
     if not files:
-        return {"success": False, "message": "❌ 请上传PDF文件"}
+        return {"success": False, "message": "❌ 请上传文件"}
+
+    # 支持的文件类型和扩展名映射
+    supported_extensions = {
+        "jpg": "image/jpeg",
+        "jpeg": "image/jpeg",
+        "png": "image/png",
+        "gif": "image/gif",
+        "bmp": "image/bmp",
+        "pdf": "application/pdf"
+    }
 
     temp_paths = []
     temp_to_original = {}
     try:
         # 保存所有临时文件并记录原始文件名
         for file in files:
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_file:
+            # 从文件名获取扩展名
+            file_ext = file.filename.split(".")[-1].lower() if file.filename else ""
+            
+            if file_ext not in supported_extensions:
+                return {"success": False, "message": f"❌ 不支持的文件类型: {file_ext}"}
+
+            # 根据扩展名确定文件类型
+            content_type = supported_extensions[file_ext]
+
+            with tempfile.NamedTemporaryFile(delete=False, suffix=file_ext) as temp_file:
                 temp_file.write(file.file.read())
                 temp_path = temp_file.name
                 temp_paths.append(temp_path)
@@ -183,11 +223,3 @@ def read_root():
     return FileResponse("src/ui/static/index.html")
 
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(
-        "src.ui.app:app",
-        host="0.0.0.0",
-        port=7864,
-        reload=True
-    )

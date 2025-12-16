@@ -63,7 +63,7 @@ async function initAssistant() {
 async function loadDocuments() {
     const fileInput = document.getElementById("pdf_upload");
     if (!fileInput.files || fileInput.files.length === 0) {
-        showMessage("load_output", "❌ 请选择PDF文件", true);
+        showMessage("load_output", "❌ 请选择文件", true);
         return;
     }
 
@@ -86,7 +86,7 @@ async function loadDocuments() {
             }, 1000);
 
             const startTime = Date.now();
-            const response = await fetch("/api/load_pdf", {
+            const response = await fetch("/api/load_multimodal", {
                 method: "POST",
                 body: formData
             });
@@ -129,7 +129,7 @@ async function loadDocuments() {
                 formData.append("files", files[i]);
             }
 
-            const response = await fetch("/api/load_pdf_parallel", {
+            const response = await fetch("/api/load_multimodal_parallel", {
                 method: "POST",
                 body: formData
             });
