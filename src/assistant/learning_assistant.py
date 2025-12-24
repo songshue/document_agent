@@ -16,6 +16,9 @@ from hello_agents.tools import MemoryTool, RAGTool
 # 导入图片处理相关模块
 from src.api.llm import OpenAIVisionClient
 from markitdown import MarkItDown
+from dotenv import load_dotenv
+load_dotenv()
+
 
 
 class PDFLearningAssistant:
@@ -51,7 +54,86 @@ class PDFLearningAssistant:
         self.current_documents = []
         # 临时文件名到原始文件名的映射
         self.temp_to_original = {}
+        
+        # 从向量库加载已存在的文档信息
+        self._load_existing_documents()
 
+    def _load_existing_documents(self):
+        """从向量库加载已存在的文档信息"""
+        try:
+            # 尝试多种方式检查向量库中是否有文档
+            has_documents = False
+            
+            # 优先使用直接搜索的方式检查是否有文档
+            try:
+                # 使用一个通用查询词进行搜索
+                search_result = self.rag_tool.execute(
+                    "search",
+                    query="document",
+                    limit=1
+                )
+                
+                # 检查搜索结果
+                if search_result and len(search_result) > 0:
+                    # 检查结果中是否有文档信息
+                    for result in search_result:
+                        if isinstance(result, dict) and "metadata" in result and result["metadata"]:
+                            # 从元数据中提取文档信息
+                            metadata = result["metadata"]
+                            if "document" in metadata:
+                                doc_name = metadata["document"]
+                                if doc_name not in self.current_documents:
+                                    self.current_documents.append(doc_name)
+                                    has_documents = True
+                            elif "filename" in metadata:
+                                doc_name = metadata["filename"]
+                                if doc_name not in self.current_documents:
+                                    self.current_documents.append(doc_name)
+                                    has_documents = True
+                    
+                    # 如果没有找到具体的文档名，至少标记有文档
+                    if not has_documents and len(search_result) > 0:
+                        self.current_documents = ["已加载文档"]
+                        has_documents = True
+                        print(f"✅ 通过搜索确认向量库中有文档")
+            except Exception as search_error:
+                print(f"⚠️ 搜索文档失败: {str(search_error)}")
+                
+                # 尝试获取统计信息作为备选方案
+                try:
+                    rag_stats = self.rag_tool.execute("stats")
+                    
+                    if isinstance(rag_stats, dict):
+                        # 检查是否有documents字段
+                        if "documents" in rag_stats and rag_stats["documents"]:
+                            existing_docs = rag_stats["documents"]
+                            if isinstance(existing_docs, list):
+                                self.current_documents = existing_docs
+                                self.stats["documents_loaded"] = len(existing_docs)
+                                has_documents = True
+                        # 检查是否有chunks字段
+                        elif "chunks" in rag_stats and rag_stats["chunks"] > 0:
+                            self.stats["documents_loaded"] = 1
+                            self.current_documents = ["已加载文档"]
+                            has_documents = True
+                        # 检查是否有点数信息
+                        elif "points_count" in rag_stats and rag_stats["points_count"] > 0:
+                            self.stats["documents_loaded"] = 1
+                            self.current_documents = ["已加载文档"]
+                            has_documents = True
+                except Exception as stats_error:
+                    print(f"⚠️ 获取统计信息失败: {str(stats_error)}")
+            
+            # 更新文档加载统计
+            if has_documents:
+                self.stats["documents_loaded"] = len(self.current_documents)
+                print(f"✅ 已加载向量库中已存在的文档: {self.current_documents}")
+            else:
+                print(f"ℹ️ 向量库中没有已加载的文档")
+        except Exception as e:
+            print(f"⚠️ 加载已存在文档信息时发生未知错误: {str(e)}")
+            # 继续初始化，不影响正常使用
+    
     def load_document(self, file_path: str, original_filename: Optional[str] = None) -> Dict[str, Any]:
         """加载文档（PDF或图片）到知识库
 
@@ -64,6 +146,12 @@ class PDFLearningAssistant:
         """
         if not os.path.exists(file_path):
             return {"success": False, "message": f"文件不存在: {file_path}"}
+            
+        # 检查文件是否已存在于当前加载的文档中
+        temp_doc_name = os.path.basename(file_path)
+        doc_name = original_filename if original_filename else temp_doc_name
+        if doc_name in self.current_documents:
+            return {"success": False, "message": f"文档《{doc_name}》已存在于知识库中，无需重复加载"}
 
         # 获取文件扩展名和文件名
         temp_doc_name = os.path.basename(file_path)
@@ -129,8 +217,35 @@ class PDFLearningAssistant:
         Returns:
             str: 答案
         """
+        # 检查向量库中是否有文档
         if not self.current_documents:
-            return "⚠️ 请先加载文档！使用 load_document() 方法加载PDF文档。"
+            try:
+                # 尝试获取向量库中的统计信息
+                try:
+                    rag_stats = self.rag_tool.execute("stats")
+                    
+                    # 检查是否有文档或块
+                    has_documents = False
+                    if isinstance(rag_stats, dict):
+                        has_documents = ("documents" in rag_stats and rag_stats["documents"]) or \
+                                       ("chunks" in rag_stats and rag_stats["chunks"] > 0) or \
+                                       ("points_count" in rag_stats and rag_stats["points_count"] > 0)
+                except Exception:
+                    # 如果stats方法失败，尝试直接搜索
+                    search_result = self.rag_tool.execute(
+                        "search",
+                        query=question,
+                        limit=1
+                    )
+                    has_documents = search_result and len(search_result) > 0
+                
+                if not has_documents:
+                    return "⚠️ 请先加载文档！使用 load_document() 方法加载PDF文档。"
+                
+                # 更新当前文档列表
+                self.current_documents = ["已加载文档"]
+            except Exception as e:
+                return "⚠️ 请先加载文档！使用 load_document() 方法加载PDF文档。"
 
         # 记录问题到工作记忆
         self.memory_tool.execute(
